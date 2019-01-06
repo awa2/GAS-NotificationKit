@@ -26,10 +26,10 @@ namespace NotificationKit {
         }
     }
     export class App {
-        private option: Notification.Option;
+        private option: NotificationKit.Option;
         public static Option = {}
 
-        constructor(option: Notification.Option) {
+        constructor(option: NotificationKit.Option) {
             this.option = option;
         }
 
