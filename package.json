@@ -1,8 +1,8 @@
 {
-  "name": "@ts-modules-for-gas/gas-notificationkit",
+  "name": "@ts-module-for-gas/gas-notificationkit",
   "version": "0.0.1",
   "description": "Notification module for Slack, Workplace and Email that written by TypeScript",
-  "main": "index.js",
+  "main": "./src/NotificationKit.ts",
   "directories": {
     "test": "test"
   },

@@ -1,23 +1,15 @@
-import { Request, Response, EventObject } from '../HTTP/HTTP';
-
-const SLACK_API_URL = 'https://slack.com/api';
-const WP_API_URL = 'https://graph.facebook.com';
+import Slack from './Slack';
+import Workplace from './Workplace';
 
 namespace NotificationKit {
     export type Option = {
         SlackBot?: {
-            TOKEN: string,
-            CH: string,
             BOT_NAME: string,
-            MENTION: string,
-        },
-        Workplace?: {
             TOKEN: string,
-            GROUP_ID: string
+            CH: string
         },
-        WorkplaceChat?: {
+        WorkplaceBot: {
             TOKEN: string,
-            THREAD_KEY: string
         }
         Email?: {
             to: string,
@@ -25,17 +17,21 @@ namespace NotificationKit {
             bcc?: string
         }
     }
-    export class App {
+    export class Bot {
         private option: NotificationKit.Option;
+        public SlackBot?: Slack.Bot;
+        public WorkplaceBot?: Workplace.Bot;
         public static Option = {}
 
         constructor(option: NotificationKit.Option) {
             this.option = option;
-        }
-
-        public notify(attachment: Slack.Attachement) {
-            this.notifyToEmail(attachment);
-            this.notifyToSlack(attachment);
+            if(option.SlackBot){
+                this.SlackBot = new Slack.Bot(option.SlackBot.BOT_NAME, option.SlackBot.TOKEN);
+            }
+            if(option.WorkplaceBot){
+                this.WorkplaceBot = new Workplace.Bot(option.WorkplaceBot.TOKEN);
+            }
+            return this;
         }
 
         public notifyToEmail(attachment: Slack.Attachement, _to?: string, _cc?: string, _bcc?: string) {
@@ -54,72 +50,21 @@ namespace NotificationKit {
             }
         }
 
-        public notifyToSlack(attachment: Slack.Attachement, _ch?: string, _mention?: string) {
-            if (this.option.SlackBot) {
-                const mention = _mention ? _mention : this.option.SlackBot.MENTION ? this.option.SlackBot.MENTION : '';
-                attachment.pretext += ` @${mention.replace('@', '')}`;
-
-                const payload = {
-                    channel: _ch ? _ch : this.option.SlackBot.CH,
-                    text: '',
-                    link_names: 1,
-                    parse: 'full',
-                    username: this.option.SlackBot.BOT_NAME,
-                    attachments: JSON.stringify([attachment])
-                }
-
-                console.log({ notifyToSlack: payload });
-                return UrlFetchApp.fetch(`${SLACK_API_URL}/chat.postMessage`, {
-                    method: 'post',
-                    payload: payload,
-                    headers: {
-                        'Authorization': `Bearer ${this.option.SlackBot.TOKEN}`
-                    }
-                });
+        public notifyToSlack(ch: string,attachment: Slack.Attachement) {
+            if (this.SlackBot) {
+                return this.SlackBot.post(attachment, ch);
             }
         }
 
-        public notifyToWorkplace(attachment: Slack.Attachement, _group_id?: string) {
-            if (this.option.Workplace) {
-                const payload = {
-                    formatting: 'MARKDOWN',
-                    message: this.renderMarkdown(attachment),
-                    link: attachment.title_link ? attachment.title_link : attachment.author_link ? attachment.author_link : '',
-                }
-                const groud_id = _group_id ? _group_id : this.option.Workplace.GROUP_ID;
-
-                console.log({ notifyToWorkplace: payload });
-                return UrlFetchApp.fetch(`${WP_API_URL}/${groud_id}/feed`, {
-                    method: 'post',
-                    payload: payload,
-                    headers: {
-                        'Authorization': `Bearer ${this.option.Workplace.TOKEN}`
-                    }
-                });
+        public notifyToWorkplace(group_id: string, attachment: Slack.Attachement) {
+            if (this.WorkplaceBot) {
+                return this.WorkplaceBot.post(group_id, this.renderMarkdown(attachment));
             }
         }
 
-        public notifyToWorkplaceChat(attachment: Slack.Attachement, _thread_key?: string) {
-            if (this.option.WorkplaceChat) {
-                const payload = {
-                    message_type: "MESSAGE_TAG",
-                    recipient: {
-                        thread_key: _thread_key ? _thread_key : this.option.WorkplaceChat.THREAD_KEY
-                    },
-                    message: {
-                        text: this.renderChatpost(attachment),
-                    }
-                }
-
-                console.log({ notifyToWorkplaceChat: payload });
-                return UrlFetchApp.fetch(`${WP_API_URL}/v2.6/me/messages`, {
-                    method: 'post',
-                    contentType: 'application/json; charset=utf-8',
-                    payload: JSON.stringify(payload),
-                    headers: {
-                        'Authorization': `Bearer ${this.option.WorkplaceChat.TOKEN}`
-                    }
-                });
+        public notifyToWorkplaceChat(thread_key: string, attachment: Slack.Attachement) {
+            if(this.WorkplaceBot){
+                return this.WorkplaceBot.chat(thread_key, this.renderChatpost(attachment));
             }
         }
 
@@ -146,6 +91,7 @@ namespace NotificationKit {
 
             return html;
         }
+
         private renderMarkdown(attachment: Slack.Attachement) {
             let md = '';
 
@@ -166,6 +112,7 @@ namespace NotificationKit {
             md += attachment.footer ? `----\n${attachment.footer.replace('\n', '  \n')}\n` : '';
             return md;
         }
+
         private renderChatpost(attachment: Slack.Attachement) {
             let chatpost = '';
 
@@ -176,146 +123,9 @@ namespace NotificationKit {
                     return `# *${field.title}*\n${field.value}\n`;
                 }).join('');
             }
-            chatpost += attachment.title_link ? attachment.title_link : attachment.author_link ? attachment.author_link : '';
             chatpost += '\n';
             chatpost += attachment.footer ? `----\n${attachment.footer}` : ''
             return chatpost;
-        }
-
-        private updateToSlack(attachment: Slack.Attachement, _ch?: string) {
-            if (this.option.SlackBot) {
-
-                const payload = {
-                    channel: _ch ? _ch : this.option.SlackBot.CH,
-                    text: '',
-                    link_names: 1,
-                    parse: 'full',
-                    username: this.option.SlackBot.BOT_NAME,
-                    attachments: JSON.stringify([attachment])
-                }
-
-                console.log({ updateToSlack: payload });
-                return UrlFetchApp.fetch(`${SLACK_API_URL}/chat.update`, {
-                    method: 'post',
-                    payload: payload,
-                    headers: {
-                        'Authorization': `Bearer ${this.option.SlackBot.TOKEN}`
-                    }
-                });
-            }
-        }
-    }
-
-    export namespace Slack {
-        export class Post {
-            public static update(){}
-            public static delete(){}
-            public static thread_talk(){}
-        }
-        export type Payload = {
-            channel: string,
-            text: string,
-            link_names?: '1',
-            parse?: 'full' | 'none',
-            username: string,
-            attachments: string
-        }
-        export type Message = {
-            text?: string,
-            attachments?: Attachement[],
-            thread_ts?: string,
-            response_type?: 'in_channel' | 'ephemeral',
-            replace_original?: boolean,
-            delete_original?: boolean
-        }
-        export type Attachement = {
-            fallback?: string,             //"Required plain-text summary of the attachment.",
-            callback_id?: string,          //"wopr_game",
-            color: string,                 //"#2eb886",
-            attachment_type?: string,      //"default",
-            actions?: Action[],
-            pretext?: string,              //"Optional text that appears above the attachment block",
-            author_name?: string,           //"Bobby Tables",
-            author_link?: string,          //"http://flickr.com/bobby/",
-            author_icon?: string,          //"http://flickr.com/icons/bobby.jpg",
-            title?: string,                 //"Slack API Documentation",
-            title_link?: string,           //"https://api.slack.com/",
-            text?: string,                 // "Optional text that appears within the attachment",
-            fields?: Array<
-            {
-                title: string,             //"Priority",
-                value: string,             //"High",
-                short?: boolean,           //false
-            }
-            >,
-            image_url?: string,            //"http://my-website.com/path/to/image.jpg",
-            thumb_url?: string,            //"http://example.com/path/to/thumb.png",
-            footer?: string,               //"Slack API",
-            footer_icon?: string,          //"https://platform.slack-edge.com/img/default_application_icon.png",
-            ts?: number                    //123456789
-        }
-        export type Action = {
-            name: string,
-            text: string,
-            type: string,
-            value?: string,
-            confirm?: Confirmation,
-            style?: string,
-            options?: Option[],
-            option_groups?: OptionGroup[],
-            data_source?: string,
-            selected_options?: Option[],
-            min_query_length?: number
-        }
-        export type Option = {
-            text: string,
-            value: string,
-            description?: string
-        }
-        export type Confirmation = {
-            title: string,
-            text: string,
-            ok_text: string,
-            dismiss_Text: string,
-        }
-        export type OptionGroup = {
-            text: string,
-            options: Option[]
-
-        }
-        export type Invocation = {
-            type: string,
-            actions: Action[],
-            callback_id: string,
-            team: { id: string, domain: string },
-            channel: { id: string, name: string },
-            user: { id: string, name: string },
-            action_ts: string,
-            message_ts: string,
-            attachment_id: string,
-            token: string,
-            original_message: Object,
-            response_url: string
-        }
-        export type OptionsLoad = {
-            name: string,
-            value: string,
-            callback_id: string,
-            type: string,
-            team: { id: string, domain: string },
-            channel: { id: string, name: string },
-            user: { id: string, name: string },
-            action_ts: string,
-            message_ts: string,
-            attachment_id: string,
-            token: string,
-        }
-        export type PostResponse = {
-            ok: boolean,
-            channel: string,
-            ts: string,
-            message?: Message,
-            error?: string
         }
     }
 }
