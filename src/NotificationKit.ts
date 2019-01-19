@@ -6,7 +6,6 @@ namespace NotificationKit {
         SlackBot?: {
             BOT_NAME: string,
             TOKEN: string,
-            CH: string
         },
         WorkplaceBot: {
             TOKEN: string,
