@@ -129,4 +129,4 @@ namespace NotificationKit {
     }
 }
 
-export default Notification;
+export default NotificationKit
