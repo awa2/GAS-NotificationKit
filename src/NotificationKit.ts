@@ -1,5 +1,5 @@
-import Slack from './Slack';
-import Workplace from './Workplace';
+import { Slack, Attachement } from '@ts-module-for-gas/gas-slack';
+import { Workplace, ChatTemplate } from '@ts-module-for-gas/gas-workplace';
 
 namespace NotificationKit {
     export type Option = {
@@ -24,16 +24,18 @@ namespace NotificationKit {
 
         constructor(option: NotificationKit.Option) {
             this.option = option;
-            if(option.SlackBot){
-                this.SlackBot = new Slack.Bot(option.SlackBot.BOT_NAME, option.SlackBot.TOKEN);
+            if (option.SlackBot) {
+                Slack.setToken(option.SlackBot.TOKEN);
+                this.SlackBot = Slack.createBot(option.SlackBot.BOT_NAME);
             }
-            if(option.WorkplaceBot){
-                this.WorkplaceBot = new Workplace.Bot(option.WorkplaceBot.TOKEN);
+            if (option.WorkplaceBot) {
+                Workplace.setToken(option.WorkplaceBot.TOKEN);
+                this.WorkplaceBot = Workplace.createBot();
             }
             return this;
         }
 
-        public notifyToEmail(attachment: Slack.Attachement, _to?: string, _cc?: string, _bcc?: string) {
+        public notifyToEmail(attachment: Attachement, _to?: string, _cc?: string, _bcc?: string) {
             if (this.option.Email) {
                 const emailOption = {
                     to: _to ? _to : this.option.Email.to,
@@ -49,30 +51,77 @@ namespace NotificationKit {
             }
         }
 
-        public notifyToSlack(ch: string,attachment: Slack.Attachement) {
+        public notifyToSlack(ch: string, attachment: Attachement) {
             if (this.SlackBot) {
-                return this.SlackBot.post(attachment, ch);
+                return this.SlackBot.post(ch, attachment);
             }
         }
 
-        public notifyToWorkplace(group_id: string, attachment: Slack.Attachement) {
+        public notifyToWorkplace(group_id: string, attachment: Attachement) {
             if (this.WorkplaceBot) {
                 return this.WorkplaceBot.post(group_id, this.renderMarkdown(attachment));
             }
         }
 
-        public notifyToWorkplaceChat(thread_key: string, attachment: Slack.Attachement) {
-            if(this.WorkplaceBot){
-                return this.WorkplaceBot.chat(thread_key, this.renderChatpost(attachment));
+        public notifyToWorkplaceChat(thread_key: string, attachment: Attachement) {
+            if (this.WorkplaceBot) {
+                let res;
+                if (attachment.pretext) {
+                    res = this.WorkplaceBot.chat(thread_key, attachment.pretext);
+                }
+
+                let payload1: any = {
+                    template_type: 'list',
+                    top_element_style: 'large',
+                    elements: [{
+                        title: attachment.title ? attachment.title.slice(0, 79) : "Notification",
+                        subtitle: attachment.text ? attachment.text.slice(0, 79) : '',
+                    }]
+                }
+                if (attachment.thumb_url || attachment.image_url) {
+                    payload1.elements[0].image_url = attachment.thumb_url ? attachment.thumb_url : attachment.image_url;
+                }
+                if (attachment.fields) {
+                    // elements has max 4: 1-3
+                    attachment.fields.some((field, i) => {
+                        payload1.elements.push({
+                            title: field.title,
+                            subtitle: field.value
+                        });
+                        return i === 2; // stop on 3
+                    });
+                    res = this.WorkplaceBot.chat(thread_key, { type: 'template', payload: payload1 });
+
+                    if (attachment.fields.length > 3) {
+                        let payload2: any = {
+                            template_type: 'generic',
+                            elements: []
+                        }
+                        attachment.fields.forEach((field, i) => {
+                            if (i > 2) {
+                                payload2.elements.push({
+                                    title: field.title,
+                                    subtitle: field.value
+                                })
+                            }
+                        })
+                        res = this.WorkplaceBot.chat(thread_key, { type: 'template', payload: payload2 });
+                    }
+                }
+
+
+
+                return attachment.title_link ?
+                    this.WorkplaceBot.chat(thread_key, attachment.title_link) : res;
             }
         }
 
-        public log(attachment: Slack.Attachement) {
+        public log(attachment: Attachement) {
             console.log({ log: attachment });
             Logger.log(JSON.stringify(attachment, null, 2));
         }
 
-        private renderHTML(attachment: Slack.Attachement) {
+        private renderHTML(attachment: Attachement) {
             let html = '';
 
             html = attachment.pretext ? `<p>${attachment.pretext.replace('\n', '<br>\n')}</p>\n` : '';
@@ -91,7 +140,7 @@ namespace NotificationKit {
             return html;
         }
 
-        private renderMarkdown(attachment: Slack.Attachement) {
+        private renderMarkdown(attachment: Attachement) {
             let md = '';
 
             md = attachment.pretext ? `${attachment.pretext}` : '';
@@ -112,7 +161,7 @@ namespace NotificationKit {
             return md;
         }
 
-        private renderChatpost(attachment: Slack.Attachement) {
+        private renderChatpost(attachment: Attachement) {
             let chatpost = '';
 
             chatpost += attachment.pretext ? `${attachment.pretext}` : '';
@@ -128,5 +177,4 @@ namespace NotificationKit {
         }
     }
 }
-
 export default NotificationKit
