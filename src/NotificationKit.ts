@@ -10,11 +10,6 @@ namespace NotificationKit {
         WorkplaceBot: {
             TOKEN: string,
         }
-        Email?: {
-            to: string,
-            cc?: string,
-            bcc?: string
-        }
     }
     export class Bot {
         private option: NotificationKit.Option;
@@ -35,20 +30,18 @@ namespace NotificationKit {
             return this;
         }
 
-        public notifyToEmail(attachment: Attachement, _to?: string, _cc?: string, _bcc?: string) {
-            if (this.option.Email) {
-                const emailOption = {
-                    to: _to ? _to : this.option.Email.to,
-                    cc: _cc ? _cc : this.option.Email.cc,
-                    bcc: _bcc ? _bcc : this.option.Email.bcc,
-                    subject: attachment.title,
-                    htmlBody: this.renderHTML(attachment),
-                    noReply: true
-                };
+        public notifyToEmail(email: { to: string, cc?: string, bcc?: string }, attachment: Attachement) {
+            const emailOption = {
+                to: email.to,
+                cc: email.cc ? email.cc : '',
+                bcc: email.bcc ? email.bcc : '',
+                subject: attachment.title,
+                htmlBody: this.renderHTML(attachment),
+                noReply: true
+            };
 
-                console.log({ notifyToEmail: emailOption });
-                MailApp.sendEmail(emailOption);
-            }
+            console.log({ notifyToEmail: emailOption });
+            MailApp.sendEmail(emailOption);
         }
 
         public notifyToSlack(ch: string, attachment: Attachement) {
