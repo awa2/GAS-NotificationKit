@@ -126,7 +126,7 @@ namespace NotificationKit {
 
             html = attachment.pretext ? `<p>${attachment.pretext.replace('\n', '<br>\n')}</p>\n` : '';
             if (attachment.author_name) {
-                html += attachment.author_link ? `<small><a href="${attachment.author_link}">${attachment.author_name}</a></small>` : `<small><${attachment.author_name}</small>`;
+                html += attachment.author_link ? `<small><a href="${attachment.author_link}">${attachment.author_name}</a></small>` : `<small>${attachment.author_name}</small>`;
             }
             html += `<h2>${attachment.title}</h2>`;
             html += attachment.text ? `<p>${attachment.text.replace('\n', '<br>\n')}</p>` : '';
