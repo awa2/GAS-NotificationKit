@@ -138,9 +138,6 @@ namespace NotificationKit {
 
             md = attachment.pretext ? `${attachment.pretext}` : '';
             md += '\n';
-            if (attachment.author_name) {
-                md += attachment.author_link ? `[${attachment.author_name}](${attachment.author_link})\n` : `(${attachment.author_name})\n`;
-            }
             md += `# **${attachment.title}** \n`;
             md += attachment.text ? `${attachment.text.replace('\n', '  \n')}` : '';
             md += '\n';
@@ -151,6 +148,9 @@ namespace NotificationKit {
             }
             md += '\n';
             md += attachment.footer ? `----\n${attachment.footer.replace('\n', '  \n')}\n` : '';
+            if (attachment.author_name) {
+                md += attachment.author_link ? `posted by [${attachment.author_name}](${attachment.author_link})\n` : `posted by [${attachment.author_name}]\n`;
+            }
             return md;
         }
 
