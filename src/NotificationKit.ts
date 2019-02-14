@@ -52,7 +52,11 @@ namespace NotificationKit {
 
         public notifyToWorkplace(group_id: string, attachment: Attachement) {
             if (this.WorkplaceBot) {
-                return this.WorkplaceBot.post(group_id, this.renderMarkdown(attachment));
+                if (attachment.title_link) {
+                    return this.WorkplaceBot.post(group_id, this.renderMarkdown(attachment), attachment.title_link);
+                } else {
+                    return this.WorkplaceBot.post(group_id, this.renderMarkdown(attachment));
+                }
             }
         }
 
