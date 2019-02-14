@@ -7,7 +7,7 @@ namespace NotificationKit {
             BOT_NAME: string,
             TOKEN: string,
         },
-        WorkplaceBot: {
+        WorkplaceBot?: {
             TOKEN: string,
         }
     }
