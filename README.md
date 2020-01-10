@@ -31,14 +31,8 @@ const option = {
         TOKEN: <YOUR_SLACK_TOKEN>
     },
     WorkplaceBot: {
-        TOKEN: <YOUR_SLACK_TOKEN>
+        TOKEN: <YOUR_WORKPLACE_TOKEN>
     }
-    Email?: {
-        to: 'user1@exmaple.com',
-        cc: 'user2@exmaple.com',
-        bcc: 'user3@exmaple.com'
-    }
-
 }
 const Bot = new NotificationKit.Bot(option);
 
@@ -49,8 +43,8 @@ Bot.notifyToEmail({
 ```
 
 ### Attachment format
-Compatible with Slack attachment format
-Example:
+Compatible with Slack attachment format  
+#### Example
 ```json
 {
     "attachments": [
@@ -88,13 +82,18 @@ Subject: ${attachment.title}
 ```
 
 ```html
+/* HTML Body */
 <html>
-<p>${attachment.pretext}/p>
+<p>${attachment.pretext}</p>
 <small><a href="${attachment.author_link}">${attachment.author_name}</a></small>
-<h2>${attachment.title}</h2>
+<h2><a href="${attachment.title_link}">${attachment.title}</a></h2>
 <p>${attachment.text}</p>
-<p><b>${field.title}</b><br>$
-{field.value}</p>
+<p><b>${field.title}</b><br>
+${field.value}</p>
+  :
+  :
 <small>${attachment.footer}</small>
 </html>
 ```
+if `xxx_link` is emtpy, `<a>` tag is not generated.
+
